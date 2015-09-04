@@ -59,6 +59,8 @@ function getVectorTile(tile, tileLayer, done){
           });
         }
       });
+    } else {
+      done(null, xTile);
     }
   });
 }
