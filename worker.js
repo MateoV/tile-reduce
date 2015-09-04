@@ -3,6 +3,8 @@ var Pbf = require('pbf');
 var request = require('request');
 var turf = require('turf');
 var queue = require('queue-async');
+var gm = require('gm');
+var fs = require('fs');
 
 process.on('message', function(data) {
   var mapOperation = require(data.opts.map);
@@ -15,7 +17,6 @@ process.on('message', function(data) {
     q.awaitAll(function(err, res){
       if(res[0]){
         mapOperation(tile, function(err, message){
-          //console.log(message);
           process.send(message);
         });
       } else {
@@ -40,18 +41,24 @@ function getVectorTile(tile, tileLayer, done){
   var requestOpts = {
     url: url,
     gzip: true,
-    encoding: null,
-    method: 'HEAD'
+    encoding: 'binary'
   };
-  request(requestOpts, function(err, res, body) {
-    //console.log(res.statusCode);
-    if (res.statusCode == 200) {
-      //console.log(parseInt(res.headers['content-length']));
-      if (parseInt(res.headers['content-length']) == 1882) {
-        xTile = tile;
-      }
-    }
 
-    done(null, xTile);
+  request(requestOpts, function(error, res, body) {
+    if (res.statusCode == 200) {
+      var filename = tile[0] + '_' + tile[1] + '.png';
+      fs.writeFile(filename, body, 'binary', function (err) {
+        if (!err) {
+          gm(filename).identify(function(err, value) {
+            if (value.Type == 'grayscale' && value['Channel Statistics'].Gray.Mean != '32.10 (0.1259)') {
+              xTile = tile;
+            }
+            fs.unlink(filename, function(err) {
+              if (!err) done(null, xTile);
+            });
+          });
+        }
+      });
+    }
   });
 }
