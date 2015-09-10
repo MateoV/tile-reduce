@@ -6,7 +6,7 @@ var fork = require('child_process').fork;
 var cpus = require('os').cpus().length;
 var rateLimit = require('function-rate-limit');
 
-var tileNum = 250;
+var tileNum = 1000;
 
 module.exports = function (coverArea, opts){
   var workers = [];
