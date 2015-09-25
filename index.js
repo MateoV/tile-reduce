@@ -57,6 +57,9 @@ function sendTiles (tiles, workers, opts) {
       opts: opts
     });
   });
+  //tiles.forEach(function(tile){
+  //  sendTile(tile);
+  //});
   for (i = 0; i < tileNum; i++) {
     ridx = getRandomInt(0, tiles.length-1);
     sendTile(tiles[ridx]);
