@@ -47,7 +47,7 @@ function getVectorTile(tile, tileLayer, done){
     //console.log(res.statusCode);
     if (res.statusCode == 200) {
       //console.log(parseInt(res.headers['content-length']));
-      if (parseInt(res.headers['content-length']) == 103) {
+      if (parseInt(res.headers['content-length']) == 1651) {
         xTile = tile;
       }
     }
