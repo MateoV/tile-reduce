@@ -6,7 +6,7 @@ var fork = require('child_process').fork;
 var cpus = require('os').cpus().length;
 var rateLimit = require('function-rate-limit');
 
-var tileNum = 1000;
+//var tileNum = 1000;
 
 module.exports = function (coverArea, opts){
   var workers = [];
@@ -29,7 +29,7 @@ module.exports = function (coverArea, opts){
       tilesCompleted++;
 
       // if all tiles have been processed, kill workers and emit 'end' event
-      if(tilesCompleted >= tileNum){
+      if(tilesCompleted >= tiles.length) { //tileNum){
         while (workers.length) {
           workers.shift().kill('SIGHUP');
         }
@@ -57,14 +57,14 @@ function sendTiles (tiles, workers, opts) {
       opts: opts
     });
   });
-  //tiles.forEach(function(tile){
-  //  sendTile(tile);
-  //});
-  for (i = 0; i < tileNum; i++) {
-    ridx = getRandomInt(0, tiles.length-1);
-    sendTile(tiles[ridx]);
-    tiles.splice(ridx, 1);
-  }
+  tiles.forEach(function(tile){
+    sendTile(tile);
+  });
+  //for (i = 0; i < tileNum; i++) {
+  //  ridx = getRandomInt(0, tiles.length-1);
+  //  sendTile(tiles[ridx]);
+  //  tiles.splice(ridx, 1);
+  //}
 }
 
 function computeCover (coverArea, zoom) {

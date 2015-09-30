@@ -3,6 +3,7 @@ var Pbf = require('pbf');
 var request = require('request');
 var turf = require('turf');
 var queue = require('queue-async');
+var tilebelt = require('tilebelt');
 
 process.on('message', function(data) {
   var mapOperation = require(data.opts.map);
@@ -47,11 +48,26 @@ function getVectorTile(tile, tileLayer, done){
     //console.log(res.statusCode);
     if (res.statusCode == 200) {
       //console.log(parseInt(res.headers['content-length']));
-      if (parseInt(res.headers['content-length']) == 1651) {
+      if (parseInt(res.headers['content-length']) == 1031) {
         xTile = tile;
+        //console.log('HEY '+tile + ' ' + xTile);
+        done(null, xTile);
+      } else {
+        //get tile children and check them
+        if (tile[2] < 18) {
+          children = tilebelt.getChildren(tile);
+          children.forEach(function(c) {
+            //console.log(c);
+            getVectorTile(c, tileLayer, done);
+          });
+        } else {
+          done(null, xTile);
+        }
       }
+    } else {
+      done(null, xTile);
     }
 
-    done(null, xTile);
+    //done(null, xTile);
   });
 }
