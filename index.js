@@ -51,7 +51,7 @@ module.exports = function (coverArea, opts){
 
 function sendTiles (tiles, workers, opts) {
   if(!opts.maxrate || opts.maxrate > 200) opts.maxrate = 200;
-  var sendTile = rateLimit(opts.maxrate / opts.tileLayers.length, 1000, function(tile){
+  var sendTile = rateLimit(opts.maxrate / opts.tileLayers.length, 5000, function(tile){
     workers[getRandomInt(0, workers.length-1)].send({
       tiles: [tile],
       opts: opts
