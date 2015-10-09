@@ -7,21 +7,41 @@ var queue = require('queue-async');
 process.on('message', function(data) {
   var mapOperation = require(data.opts.map);
   data.tiles.forEach(function(tile){
-    var layerCollection = {};
     var q = queue(4);
-    data.opts.tileLayers.forEach(function(tileLayer){
-      q.defer(getVectorTile, tile, tileLayer);
-    });
-    q.awaitAll(function(err, res){
-      if(res[0]){
-        mapOperation(tile, function(err, message){
-          //console.log(message);
-          process.send(message);
-        });
-      } else {
-        process.send(0);
-      }
-    });
+    if (data.opts.requestType == 'HEAD') {
+      data.opts.tileLayers.forEach(function(tileLayer){
+        q.defer(getVectorTileHeader, tile, tileLayer);
+      });
+      q.awaitAll(function(err, res){
+        if(res[0]){
+          mapOperation(res[0], tile, data.opts.tileLayers, function(err, message){
+            process.send(message);
+          });
+        } else {
+          process.send(0);
+        }
+      });
+    } else {
+      var layerCollection = {};
+      data.opts.tileLayers.forEach(function(tileLayer){
+        q.defer(getVectorTile, tile, tileLayer);
+      });
+      q.awaitAll(function(err, res){
+        if(res){
+          res.forEach(function(item){
+            item.layers.forEach(function(layer){
+              if(!layerCollection[item.name]) layerCollection[item.name] = {};
+              layerCollection[item.name][layer] = item[layer];
+            });
+          });
+          mapOperation(layerCollection, tile, function(err, message){
+            process.send(message);
+          });
+        } else {
+          process.send(0);
+        }
+      });
+    }
   });
 });
 
@@ -31,8 +51,40 @@ function getVectorTile(tile, tileLayer, done){
     layers:tileLayer.layers
   };
 
-  var xTile;
+  var url = tileLayer.url.split('{x}').join(tile[0]);
+  url = url.split('{y}').join(tile[1]);
+  url = url.split('{z}').join(tile[2]);
 
+  var requestOpts = {
+    url: url,
+    gzip: true,
+    encoding: null
+  };
+  request(requestOpts, function(err, res, body) {
+    var vt;
+    try {
+      vt = new VectorTile(new Pbf(new Uint8Array(body)));
+    } catch(e){
+      done(e, null);
+    }
+    tileLayer.layers.forEach(function(layer){
+      layers[layer] = turf.featurecollection([]);
+      if(vt && vt.layers[layer]){
+        for(var i = 0; i < vt.layers[layer].length; i++){
+          try {
+            layers[layer].features.push(vt.layers[layer].feature(i).toGeoJSON(tile[0],tile[1],tile[2]));
+          } catch(e){
+            done(e, null);
+          }
+        }
+      }
+    });
+
+    done(null, layers);
+  });
+}
+
+function getVectorTileHeader(tile, tileLayer, done){
   var url = tileLayer.url.split('{x}').join(tile[0]);
   url = url.split('{y}').join(tile[1]);
   url = url.split('{z}').join(tile[2]);
@@ -44,14 +96,6 @@ function getVectorTile(tile, tileLayer, done){
     method: 'HEAD'
   };
   request(requestOpts, function(err, res, body) {
-    //console.log(res.statusCode);
-    if (res.statusCode == 200) {
-      //console.log(parseInt(res.headers['content-length']));
-      if (parseInt(res.headers['content-length']) == 1651) {
-        xTile = tile;
-      }
-    }
-
-    done(null, xTile);
+    done(null, res);
   });
 }
