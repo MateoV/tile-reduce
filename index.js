@@ -12,7 +12,8 @@ module.exports = function (coverArea, opts){
   var ee = new EventEmitter();
 
   // compute cover
-  var tiles = computeCover(coverArea, opts.zoom);
+  //var tiles = computeCover(coverArea, opts.zoom);
+  var tiles = computeEdges(coverArea, opts.zoom);
   if(!opts.rand || opts.rand >= tiles.length) opts.rand = tiles.length;
 
   // send back tiles that will be processed
@@ -57,7 +58,7 @@ function sendTiles (tiles, workers, opts) {
     });
   });
   if (opts.rand < tiles.length) {
-    for (i = 0; i < tileNum; i++) {
+    for (i = 0; i < opts.rand; i++) {
       ridx = getRandomInt(0, tiles.length-1);
       sendTile(tiles[ridx]);
       tiles.splice(ridx, 1);
@@ -67,6 +68,22 @@ function sendTiles (tiles, workers, opts) {
       sendTile(tile);
     });
   }
+}
+
+function computeEdges (coverArea, zoom) {
+  edgeTiles = []
+  coverArea.forEach(function(t) {
+    zoomDiff = zoom - t[2];
+    tileMult = Math.pow(2,zoomDiff);
+    topY = t[1] * tileMult;
+    leftX = t[0] * tileMult;
+    bottomY = topY + tileMult - 1;
+    for (var i = 0; i < tileMult; i++) {
+      edgeTiles.push([leftX+i,topY,zoom]);
+      edgeTiles.push([leftX+i,bottomY,zoom]);
+    }
+  });
+  return edgeTiles;
 }
 
 function computeCover (coverArea, zoom) {
